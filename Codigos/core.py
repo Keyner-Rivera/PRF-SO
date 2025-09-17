@@ -1,143 +1,124 @@
-import time
-import threading
 from collections import deque
+import copy
 
-# Esta clase representa cada proceso con sus nuevos atributos para la planificación.
 class Proceso:
+    """
+    Representa un proceso con los atributos necesarios para la planificación.
+    Es una estructura de datos simple.
+    """
     def __init__(self, pid, nombre, tiempo_cpu, instante_llegada):
-        self.pid = pid  # Identificador único numérico
+        self.pid = pid
         self.nombre = nombre
-        self.tiempo_cpu = tiempo_cpu  # Tiempo total requerido en CPU
+        self.tiempo_cpu_total = tiempo_cpu  # Tiempo de ráfaga original
         self.instante_llegada = instante_llegada
         
-        self.tiempo_restante_cpu = self.tiempo_cpu  # Tiempo que aún le falta por ejecutar
-        self.estado = "Nuevo"  # Estados: Nuevo, Listo, En Ejecución, Terminado
-        
-        # Atributos para el algoritmo Round Robin
-        self.tiempo_en_cpu_actual = 0
+        # Atributos que cambiarán durante la simulación
+        self.tiempo_restante_cpu = self.tiempo_cpu_total
 
-# Es el cerebro de la operación, maneja el tiempo, los procesos,
-# la ejecución en hilos y la lógica de los algoritmos de planificación.
-class Simulador:
-    def __init__(self):
-        self.procesos_nuevos = []      # Procesos que aún no han llegado a la simulación
-        self.cola_listos = deque()     # Procesos que han llegado y esperan por la CPU (usamos deque para eficiencia)
-        self.procesos_terminados = []  # Historial de procesos completados
-        self.proceso_en_cpu = None     # Proceso que está usando la CPU actualmente
-        
-        self.algoritmo_planificacion = "FCFS"
-        self.quantum = 2  # Valor por defecto para Round Robin
-        
-        self.tiempo_simulacion = 0     # Reloj global de la simulación (en unidades de tiempo)
-        
-        self.ejecutando = False  # Flag para controlar el bucle principal del hilo
-        self.pausado = False     # Flag para pausar/reanudar la simulación
-        
-        # Lock para proteger el acceso a las listas de procesos desde la GUI y el simulador
-        self.lock = threading.Lock()
-        self.hilo_ejecucion = None
-
-    def configurar_simulacion(self, lista_procesos, algoritmo, quantum=2):
-        """Prepara el simulador con los procesos y la configuración inicial."""
-        with self.lock:
-            # Ordenamos los procesos por su instante de llegada para facilitar la simulación
-            self.procesos_nuevos = sorted(lista_procesos, key=lambda p: p.instante_llegada)
-            self.algoritmo_planificacion = algoritmo
-            self.quantum = quantum
-            self.reiniciar_estado() # Resetea el estado para una nueva simulación
-
-    def iniciar_simulacion(self):
-        """Inicia el hilo de simulación si no está ya corriendo."""
-        if not self.ejecutando:
-            self.ejecutando = True
-            self.hilo_ejecucion = threading.Thread(target=self.ejecutar_simulacion, daemon=True)
-            self.hilo_ejecucion.start()
+class Planificador:
+    """
+    Calcula el cronograma completo de ejecución de los procesos
+    basado en el algoritmo de planificación seleccionado.
+    """
+    def __init__(self, procesos, algoritmo, quantum=2):
+        # Usamos una copia profunda para no modificar los objetos originales de la GUI
+        self.procesos_originales = sorted([copy.deepcopy(p) for p in procesos], key=lambda p: p.instante_llegada)
+        self.algoritmo = algoritmo
+        self.quantum = quantum
 
     def ejecutar_simulacion(self):
-        """El bucle principal que corre en el hilo secundario."""
-        while self.ejecutando:
-            if not self.pausado:
-                with self.lock:
-                    # 1. Mover procesos de 'Nuevos' a 'Listos' si ya es su tiempo de llegada
-                    procesos_llegados = [p for p in self.procesos_nuevos if p.instante_llegada <= self.tiempo_simulacion]
-                    for p in procesos_llegados:
-                        p.estado = "Listo"
-                        self.cola_listos.append(p)
-                    self.procesos_nuevos = [p for p in self.procesos_nuevos if p.instante_llegada > self.tiempo_simulacion]
-                    
-                    # Lógica de preempción para SRTF
-                    if self.algoritmo_planificacion == "SRTF" and self.proceso_en_cpu and self.cola_listos:
-                        if self.proceso_en_cpu.tiempo_restante_cpu > min(self.cola_listos, key=lambda p: p.tiempo_restante_cpu).tiempo_restante_cpu:
-                            proceso_expropiado = self.proceso_en_cpu
-                            proceso_expropiado.estado = "Listo"
-                            self.cola_listos.append(proceso_expropiado)
-                            self.proceso_en_cpu = None
+        """
+        Ejecuta la simulación completa y devuelve el cronograma, la duración total,
+        y las estadísticas de rendimiento de cada proceso.
+        """
+        tiempo_actual = 0
+        
+        procesos_nuevos = deque(self.procesos_originales)
+        cola_listos = deque()
+        
+        proceso_en_cpu = None
+        quantum_timer = 0
 
-                    # 2. Si la CPU está libre, seleccionar el siguiente proceso
-                    if self.proceso_en_cpu is None and self.cola_listos:
-                        self.seleccionar_proceso()
+        cronograma = {p.pid: [] for p in self.procesos_originales}
+        instantes_finalizacion = {}
+        
+        while procesos_nuevos or cola_listos or proceso_en_cpu:
 
-                    # 3. Ejecutar el proceso en la CPU
-                    if self.proceso_en_cpu:
-                        self.proceso_en_cpu.tiempo_restante_cpu -= 1
-                        self.proceso_en_cpu.tiempo_en_cpu_actual += 1
+            while procesos_nuevos and procesos_nuevos[0].instante_llegada <= tiempo_actual:
+                cola_listos.append(procesos_nuevos.popleft())
 
-                        # Si el proceso termina
-                        if self.proceso_en_cpu.tiempo_restante_cpu <= 0:
-                            self.proceso_en_cpu.estado = "Terminado"
-                            self.procesos_terminados.append(self.proceso_en_cpu)
-                            self.proceso_en_cpu = None
-                        # Lógica de preempción para Round Robin
-                        elif self.algoritmo_planificacion == "Round Robin" and self.proceso_en_cpu.tiempo_en_cpu_actual >= self.quantum:
-                            proceso_expropiado = self.proceso_en_cpu
-                            proceso_expropiado.estado = "Listo"
-                            self.cola_listos.append(proceso_expropiado) # Vuelve al final de la cola
-                            self.proceso_en_cpu = None
+            if proceso_en_cpu:
+                if self.algoritmo == "Round Robin" and quantum_timer >= self.quantum:
+                    cola_listos.append(proceso_en_cpu)
+                    proceso_en_cpu = None
                 
-                # Avanza el tiempo y verifica si la simulación ha terminado
-                if self.lock.locked():
-                    self.tiempo_simulacion += 1
-                    
-                    # Condición para detener la simulación
-                    if not self.proceso_en_cpu and not self.cola_listos and not self.procesos_nuevos:
-                        self.ejecutando = False
-            
-            # Cada unidad de tiempo en la simulación dura 1 segundo en tiempo real
-            time.sleep(1)
-            
-    def seleccionar_proceso(self):
-        """Selecciona el siguiente proceso de la cola de listos según el algoritmo."""
-        if not self.cola_listos:
-            return
-            
-        if self.algoritmo_planificacion == "FCFS":
-            self.proceso_en_cpu = self.cola_listos.popleft()
-        elif self.algoritmo_planificacion == "SJF":
-            # SJF no expropiativo: ordena la cola y saca el más corto
-            self.cola_listos = deque(sorted(list(self.cola_listos), key=lambda p: p.tiempo_cpu))
-            self.proceso_en_cpu = self.cola_listos.popleft()
-        elif self.algoritmo_planificacion == "SRTF":
-            # SRTF expropiativo: ordena por tiempo restante y saca el más corto
-            self.cola_listos = deque(sorted(list(self.cola_listos), key=lambda p: p.tiempo_restante_cpu))
-            self.proceso_en_cpu = self.cola_listos.popleft()
-        elif self.algoritmo_planificacion == "Round Robin":
-            self.proceso_en_cpu = self.cola_listos.popleft()
-            
-        if self.proceso_en_cpu:
-            self.proceso_en_cpu.estado = "En Ejecución"
-            self.proceso_en_cpu.tiempo_en_cpu_actual = 0 # Resetea el contador de quantum
+                if self.algoritmo == "SRTF" and cola_listos:
+                    proceso_mas_corto_en_cola = min(cola_listos, key=lambda p: p.tiempo_restante_cpu)
+                    if proceso_en_cpu.tiempo_restante_cpu > proceso_mas_corto_en_cola.tiempo_restante_cpu:
+                        cola_listos.append(proceso_en_cpu)
+                        proceso_en_cpu = None
 
-    def pausar_simulacion(self):
-        self.pausado = True
+            if not proceso_en_cpu and cola_listos:
+                if self.algoritmo in ["FCFS", "Round Robin"]:
+                    proceso_en_cpu = cola_listos.popleft()
+                elif self.algoritmo == "SJF":
+                    # For SJF (non-preemptive), sort the ready queue only when choosing a new process
+                    cola_listos = deque(sorted(list(cola_listos), key=lambda p: p.tiempo_cpu_total))
+                    proceso_en_cpu = cola_listos.popleft()
+                elif self.algoritmo == "SRTF":
+                    # For SRTF, sort the ready queue to always pick the one with the least remaining time
+                    cola_listos = deque(sorted(list(cola_listos), key=lambda p: p.tiempo_restante_cpu))
+                    proceso_en_cpu = cola_listos.popleft()
+                quantum_timer = 0
+            
+            # Lógica para mostrar las posiciones en la cola (1, 2, 3...)
+            # Para la visualización, necesitamos ordenar la cola de listos según las reglas del algoritmo actual.
+            
+            cola_listos_display = cola_listos
+            if self.algoritmo == "SJF":
+                # Para SJF, la cola de visualización se ordena por el tiempo total de CPU
+                cola_listos_display = deque(sorted(list(cola_listos), key=lambda p: p.tiempo_cpu_total))
+            elif self.algoritmo == "SRTF":
+                # Para SRTF, la cola de visualización se ordena por el tiempo restante de CPU
+                cola_listos_display = deque(sorted(list(cola_listos), key=lambda p: p.tiempo_restante_cpu))
 
-    def reanudar_simulacion(self):
-        self.pausado = False
+            pids_en_cola = {p.pid: i for i, p in enumerate(cola_listos_display)}
+            
+            for p_orig in self.procesos_originales:
+                estado_actual = ''
+                if p_orig.pid in instantes_finalizacion: estado_actual = '' 
+                elif tiempo_actual < p_orig.instante_llegada: estado_actual = '' 
+                elif proceso_en_cpu and p_orig.pid == proceso_en_cpu.pid: estado_actual = 'X' 
+                elif p_orig.pid in pids_en_cola: estado_actual = str(pids_en_cola[p_orig.pid] + 1)
+                else: estado_actual = ' ' 
+                cronograma[p_orig.pid].append(estado_actual)
 
-    def reiniciar_estado(self):
-        """Limpia el estado del simulador para una nueva ejecución."""
-        self.cola_listos.clear()
-        self.procesos_terminados.clear()
-        self.proceso_en_cpu = None
-        self.tiempo_simulacion = 0
-        self.ejecutando = False
-        self.pausado = False
+            if proceso_en_cpu:
+                proceso_en_cpu.tiempo_restante_cpu -= 1
+                quantum_timer += 1
+                if proceso_en_cpu.tiempo_restante_cpu <= 0:
+                    instantes_finalizacion[proceso_en_cpu.pid] = tiempo_actual + 1
+                    proceso_en_cpu = None
+                    quantum_timer = 0
+
+            tiempo_actual += 1
+            if tiempo_actual > 500: break # Salvaguarda para evitar bucles infinitos
+                
+        duracion_total = tiempo_actual -1 
+
+        estadisticas_dict = {}
+        for p in self.procesos_originales:
+            ti = p.instante_llegada
+            t = p.tiempo_cpu_total
+            tf = instantes_finalizacion.get(p.pid, 0)
+            T = tf - ti
+            Te = T - t
+            I = round(t / T, 4) if T > 0 else 0
+            
+            estadisticas_dict[p.pid] = {
+                "proceso": f"{p.nombre} (P{p.pid})", "ti": ti, "t": t,
+                "tf": tf, "T": T, "Te": Te, "I": I
+            }
+
+        return cronograma, duracion_total, estadisticas_dict
+
