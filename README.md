@@ -1,390 +1,392 @@
-# PR2-SO
-Segundo Proyecto de Sistemas Operativos, Grupo #7, Sección "B"
 # Simulador de Planificación de Procesos — Manual técnico
 
 **Proyecto:** PR2-SO — Segundo Proyecto de Sistemas Operativos (Grupo #7, Sección B)
 
-> Este documento es un manual técnico completo del proyecto incluido en la carpeta `PR2-SO`. Contiene instrucciones de instalación y ejecución, descripción detallada de cada módulo y clase, explicación de los algoritmos implementados, ejemplos de uso, y recomendaciones para ampliar o depurar el programa.
-
 ---
 
-# Índice
+# Requisitos técnicos
 
-1. Descripción general
-2. Requisitos e instalación
-3. Estructura del proyecto
-4. Uso rápido (arranque)
-5. Explicación detallada de los módulos
+**Lenguaje usado:**
+Python 3.10 o superior (probado también en Python 3.11, 3.12 y 3.13).
 
-   * `core.py` (lógica / simulador)
-   * `gui.py` (interfaz gráfica)
-   * `main.py` (punto de entrada)
-6. Formato de salida: cronograma y estadísticas
-7. Ejemplos de uso (vía GUI y por código)
-8. Posibles errores y solución de problemas
-9. Extensiones recomendadas
-10. Información adicional y licencia
+**Entorno de Desarrollo:**
+Cualquier IDE o editor compatible con Python. Recomendado: **PyCharm**, **Visual Studio Code** o directamente ejecución con terminal. La GUI utiliza PySide6, por lo que es recomendable un entorno con soporte gráfico.
 
----
+**Python Development Kit:**
+Se requiere tener instalado Python y `pip` para gestionar dependencias.
 
-# 1. Descripción general
+**Bibliotecas utilizadas:**
 
-Este proyecto implementa un simulador didáctico de planificación de procesos (scheduling) con interfaz gráfica. Permite crear procesos (PID, nombre, instante de llegada y tiempo de CPU), seleccionar un algoritmo de planificación (FCFS, SJF, SRTF, Round Robin), ejecutar la simulación y visualizar:
+* **PySide6**: Base para la construcción de la GUI con Qt (QMainWindow, QWidget, QTableWidget, QDialog, QPushButton, QVBoxLayout, etc.).
+* **shiboken6**: Dependencia necesaria para PySide6.
+* **collections (deque)**: Uso en la simulación de colas de procesos.
+* **copy (deepcopy)**: Para clonar procesos al inicio de la simulación.
+* **sys**: Usado en `main.py` para inicializar la aplicación Qt.
 
-* Un **cronograma** (tabla con una columna por instante de tiempo y filas por proceso) que muestra en cada instante si un proceso está ejecutando, en cola, o ya finalizó.
-* Una tabla de **estadísticas** por proceso: instante de llegada, tiempo de CPU, tiempo de finalización, tiempo de retorno, tiempo de espera y un índice de utilización relativo.
+**Clases personalizadas (módulos del proyecto):**
 
-El objetivo es permitir experimentar con distintos algoritmos de planificación y observar sus efectos en métricas clave.
+* `core.Proceso`: Modelo que representa a un proceso (PID, nombre, llegada, ráfaga de CPU).
+* `core.Planificador`: Implementa los algoritmos de planificación (FCFS, SJF, SRTF, Round Robin).
+* `gui.CustomErrorDialog`: Cuadro de diálogo para mostrar errores.
+* `gui.EditProcessDialog`: Diálogo para editar un proceso.
+* `gui.MainWindow`: Ventana principal que controla el flujo de la aplicación (agregar procesos, seleccionar algoritmo, ejecutar simulación, mostrar cronograma y estadísticas).
 
----
-
-# 2. Requisitos e instalación
-
-## Requisitos de software
-
-* **Python**: se recomienda Python **3.10+** (el proyecto se probó con versiones recientes; los bytecode indican uso en 3.13). Recomendación práctica: usar Python 3.10, 3.11, 3.12 o 3.13.
-* **Pip** para instalar dependencias.
-
-## Dependencias del proyecto
-
-El fichero `requirements.txt` del proyecto contiene (versiones usadas en desarrollo):
-
-```
-PySide6==6.9.2
-PySide6_Addons==6.9.2
-PySide6_Essentials==6.9.2
-shiboken6==6.9.2
-```
-
-> **Nota**: el fichero `requirements.txt` puede estar en codificación UTF-16 (dependiendo de cómo se guardó). Si `pip install -r requirements.txt` falla por codificación, instale directamente las dependencias con `pip install PySide6==6.9.2 shiboken6==6.9.2`.
-
-## Instalación paso a paso (recomendado)
-
-1. Clona o extrae el proyecto en una carpeta local.
-2. Crea un entorno virtual y actívalo:
-
-```bash
-python -m venv venv
-# Linux / macOS
-source venv/bin/activate
-# Windows (PowerShell)
-venv\Scripts\Activate.ps1
-# Windows (cmd)
-venv\Scripts\activate
-```
-
-3. Actualiza `pip` (opcional):
-
-```bash
-pip install --upgrade pip
-```
-
-4. Instala dependencias:
-
-```bash
-pip install -r requirements.txt
-# Si hay problemas con la codificación del archivo:
-pip install PySide6==6.9.2 PySide6_Addons==6.9.2 PySide6_Essentials==6.9.2 shiboken6==6.9.2
-```
-
----
-
-# 3. Estructura del proyecto
-
-Resumen de los archivos/directorios principales:
+**Estructura de carpetas:**
 
 ```
 PR2-SO/
 ├─ Codigos/
-│  ├─ core.py        # Lógica central: clases Proceso y Planificador
+│  ├─ core.py        # Lógica central (Proceso, Planificador)
 │  ├─ gui.py         # Interfaz gráfica (MainWindow, diálogos)
-│  └─ main.py        # Punto de entrada (lanza la aplicación Qt)
-├─ requirements.txt  # Dependencias (PySide6 ...)
-├─ README.md         # README original breve
-└─ .git/             # metadatos del repo
+│  └─ main.py        # Punto de entrada a la aplicación
+├─ requirements.txt  # Dependencias del proyecto
 ```
+
+**Sistema Operativo:**
+Multiplataforma: Windows, Linux o macOS (requiere entorno gráfico para abrir la GUI).
+
+**Recursos externos:**
+Ninguno. Todo se maneja dentro del programa. El usuario interactúa con la interfaz gráfica para ingresar procesos y configurar el algoritmo.
 
 ---
 
-# 4. Uso rápido (arranque)
+# Explicación de cada archivo y sus funciones
 
-Con el entorno virtual activado y las dependencias instaladas, desde la carpeta `PR2-SO` ejecuta:
+## `core.py`
+
+Este archivo contiene la lógica principal del simulador.
+
+### Clase `Proceso`
+
+* Representa un proceso del sistema.
+* Atributos: `pid`, `nombre`, `tiempo_cpu_total`, `instante_llegada`, `tiempo_restante_cpu`.
+* Función: sirve como modelo de datos, no contiene lógica compleja.
+
+### Clase `Planificador`
+
+* Encargada de ejecutar la simulación según el algoritmo seleccionado.
+* Constructor recibe: lista de procesos, algoritmo (`FCFS`, `SJF`, `SRTF`, `Round Robin`) y quantum (si aplica).
+* Método `ejecutar_simulacion()`: genera el cronograma, duración total y estadísticas por proceso.
+* Implementa:
+
+  * **FCFS:** First-Come, First-Served, no expropiativo.
+  * **SJF:** Shortest Job First, no expropiativo.
+  * **SRTF:** Shortest Remaining Time First, expropiativo.
+  * **Round Robin:** Expropiativo, con quantum configurable.
+* Calcula estadísticas: `ti` (llegada), `t` (CPU total), `tf` (finalización), `T` (turnaround), `Te` (espera), `I` (uso relativo de CPU).
+
+---
+
+## `gui.py`
+
+Este archivo define la interfaz gráfica de la aplicación usando PySide6.
+
+### Clase `CustomErrorDialog`
+
+* Ventana emergente para mostrar mensajes de error.
+
+### Clase `EditProcessDialog`
+
+* Permite modificar los datos de un proceso ya agregado.
+* Devuelve los datos editados en formato diccionario.
+
+### Clase `MainWindow`
+
+* Ventana principal de la aplicación.
+* Paneles:
+
+  * **Configuración:** elegir algoritmo y quantum.
+  * **Agregar proceso:** formulario para introducir procesos.
+  * **Procesos agregados:** tabla con los procesos, permite editar/eliminar.
+  * **Cronograma:** tabla donde se muestra la ejecución por instantes.
+  * **Estadísticas:** tabla con métricas de cada proceso.
+* Métodos clave:
+
+  * `agregar_proceso_a_lista()`: añade un proceso nuevo.
+  * `iniciar_simulacion_ui()`: ejecuta la simulación con el planificador.
+  * `mostrar_cronograma()`: pinta en la tabla los estados por instante.
+  * `mostrar_estadisticas()`: muestra métricas finales.
+  * `reiniciar_simulacion_ui()`: limpia todos los datos para empezar de nuevo.
+
+---
+
+## `main.py`
+
+Archivo de inicio de la aplicación.
+
+* Importa `QApplication` y `MainWindow`.
+* Crea la instancia de la app y abre la ventana principal.
+* Permite ejecutar la aplicación con:
 
 ```bash
 python Codigos/main.py
 ```
 
-Esto abrirá la ventana principal donde podrás:
+---
 
-1. Seleccionar el algoritmo de planificación.
-2. (Si eliges Round Robin) ajustar el `quantum` (tiempo de ráfaga por turno).
-3. Añadir procesos con `Nombre`, `Llegada` (instante entero, e.g. 0,1,2...) y `Tiempo en CPU` (ráfaga en unidades de tiempo).
-4. Iniciar la simulación y visualizar cronograma y estadísticas.
+# Requisitos técnicos
+
+A continuación los **requerimientos técnicos** del proyecto, presentados en el formato que solicitaste.
+
+**Lenguaje usado:**
+Python
+
+**Entorno de desarrollo:**
+Cualquier IDE/Editor que soporte Python (recomendados: PyCharm, Visual Studio Code, Thonny). El proyecto también funciona en entornos ligeros o en la terminal. Se recomienda usar un IDE con soporte para diseño de ventanas (inspección de widgets) si se edita la GUI.
+
+**Versión de Python (interpreter):**
+Python **3.10** — **3.13** (probado con 3.13). Se recomienda usar al menos **3.10** para compatibilidad con las construcciones del código.
+
+**Entorno virtual:**
+Se recomienda usar un entorno virtual (venv, virtualenv, conda) para instalar dependencias localmente y evitar conflictos con otras instalaciones de Python.
+
+**Bibliotecas / Librerías utilizadas:**
+
+* `PySide6` (Qt for Python) — construcción y manejo de la GUI (ventanas, widgets, validadores, layouts). Versión utilizada en desarrollo: **6.9.2** (instalable con `pip install PySide6==6.9.2`).
+* Módulos estándar de Python usados en el proyecto:
+
+  * `collections` (ej. `deque`) — manejo eficiente de colas para la simulación.
+  * `copy` — copias profundas de listas/objetos cuando es necesario clonar el estado de los procesos.
+  * `sys` — para recoger `argv` y lanzar la app (en `main.py` / `gui.py`).
+* No hay dependencias binarias externas aparte de PySide6.
+
+**Clases/módulos personalizados (paquete del proyecto):**
+
+* `Codigos/core.py` → lógica del simulador (clases `Proceso`, `Planificador`).
+* `Codigos/gui.py` → interfaz de usuario (ventana principal `MainWindow`, diálogos y formularios).
+* `Codigos/main.py` → punto de entrada que crea la aplicación Qt y abre la ventana principal.
+
+**Sistema operativo (SO):**
+Funciona en **Windows**, **Linux** y **macOS** siempre que exista una instalación válida de Python y PySide6. En Linux puede requerirse instalar paquetes adicionales del sistema si aparecen errores del plugin de plataforma Qt.
+
+**Recursos externos / Archivos de entrada y salida:**
+
+* El proyecto no requiere archivos externos obligatorios para ejecutarse (la GUI permite crear procesos desde la interfaz). Si se agregan importadores/exportadores, entonces se necesita el archivo de entrada correspondiente.
+
+**Recomendaciones de instalación rápida:**
+
+1. Crear y activar un entorno virtual:
+
+   ```bash
+   python -m venv venv
+   source venv/bin/activate  # Linux/macOS
+   venv\Scripts\activate  # Windows (cmd)
+   ```
+2. Instalar dependencias:
+
+   ```bash
+   pip install -r requirements.txt
+   # o si falla con codificación:
+   pip install PySide6==6.9.2
+   ```
+3. Ejecutar la aplicación:
+
+   ```bash
+   python Codigos/main.py
+   ```
+
+**Notas de compatibilidad / problemas comunes:**
+
+* Si aparece `ModuleNotFoundError: No module named 'PySide6'`, instala PySide6 en el entorno activo.
+* En Linux/macOS: si Qt reclama problemas con la plataforma (`qt.qpa.plugin`), instala las dependencias del sistema (por ejemplo `libxcb` en algunas distros) o usa una versión de PySide6 compatible con tu SO.
+* Si el `requirements.txt` tiene problemas de codificación, vuelve a guardarlo en UTF-8 o instala manualmente PySide6.
 
 ---
 
-# 5. Explicación detallada de los módulos
+# Explicación detallada por archivo Python (qué hace cada archivo y qué funciones/métodos cumple)
 
-A continuación se documenta con detalle cada archivo y las clases / métodos importantes.
+> Aquí se detalla, archivo por archivo, las responsabilidades principales, clases y funciones públicas y privadas (métodos) que implementa cada uno. La explicación describe los parámetros esperados, lo que hace cada método y qué devuelve o efectos secundarios produce.
 
-## 5.1 `core.py` — Lógica y simulador
+## `Codigos/core.py` — Lógica del simulador
 
-Contiene la lógica del simulador y las estructuras que representan procesos y la planificación.
+**Resumen general:**
+Contiene las estructuras de datos y la lógica para simular algoritmos de planificación de CPU (scheduling). Se definen los procesos como objetos y el `Planificador` que ejecuta la simulación y calcula cronograma y métricas.
 
 ### Clase `Proceso`
 
-**Descripción:** representa un proceso en el sistema.
+**Constructor:** `__init__(self, pid, nombre, tiempo_cpu, instante_llegada)`
 
-**Constructor:** `Proceso(pid, nombre, tiempo_cpu, instante_llegada)`
+* Parámetros:
 
-**Atributos principales:**
+  * `pid` (int): identificador único del proceso.
+  * `nombre` (str): nombre legible del proceso (ej. "P1" o "Proceso A").
+  * `tiempo_cpu` (int): ráfaga total de CPU que requiere el proceso (tiempo total de ejecución).
+  * `instante_llegada` (int): instante discreto en el que el proceso llega al sistema (ej. 0, 1, 2...).
+* Efectos / Atributos principales creados:
 
-* `pid` (int): identificador único del proceso.
-* `nombre` (str): nombre descriptivo (p. ej. "P1" o "Proceso 1").
-* `tiempo_cpu_total` (int): ráfaga original (tiempo total de CPU requerido por el proceso).
-* `instante_llegada` (int): instante en el que el proceso llega al sistema.
-* `tiempo_restante_cpu` (int): tiempo restante de CPU (inicialmente igual a `tiempo_cpu_total`, se decrementa durante la simulación).
-
-> Comentario: En la GUI se crean objetos `Proceso` y se pasan al planificador. La clase es una estructura de datos simple y no contiene lógica de planificación.
+  * `tiempo_cpu_total` (int): guarda el valor original de la ráfaga.
+  * `instante_llegada` (int): como se recibió.
+  * `tiempo_restante_cpu` (int): inicializado con `tiempo_cpu_total`; decrementa durante la simulación.
+* No devuelve nada. Es una simple estructura de datos; no implementa comportamiento complejo.
 
 ### Clase `Planificador`
 
-**Descripción:** ejecuta la simulación de planificación según el algoritmo elegido. Se encarga de generar el cronograma por instante y calcular estadísticas por proceso.
+**Constructor:** `Planificador(self, procesos, algoritmo, quantum=2)`
 
-**Constructor:** `Planificador(procesos, algoritmo, quantum=2)`
+* Parámetros:
 
-* `procesos`: lista de objetos `Proceso` (se hace una copia profunda y se ordenan por `instante_llegada` internamente).
-* `algoritmo`: cadena con el algoritmo elegido — soportados: `"FCFS"`, `"SJF"`, `"SRTF"`, `"Round Robin"`.
-* `quantum`: entero usado por `Round Robin` (valor por defecto `2`).
+  * `procesos` (lista de `Proceso`): lista de procesos a simular. El planificador hace internamente copias para no mutar la lista original.
+  * `algoritmo` (str): nombre del algoritmo a usar. Valores esperados: `'FCFS'`, `'SJF'`, `'SRTF'`, `'Round Robin'`.
+  * `quantum` (int, opcional): usado por Round Robin; valor por defecto `2`.
+* Efecto: prepara estructuras internas y conserva una copia de los procesos originales para cálculo de métricas.
 
-**Método principal:** `ejecutar_simulacion()`
+**Método principal:** `ejecutar_simulacion(self)`
 
-Devuelve una tupla con `(cronograma, duracion_total, estadisticas_dict)`.
+* Descripción: corre la simulación por instantes discretos aplicando la lógica del algoritmo elegido; produce un cronograma por instante y calcula estadísticas por proceso.
+* Flujo general interno (resumen técnico):
 
-#### Funcionamiento general (resumen técnico):
+  1. Ordena los procesos por instante de llegada y los coloca en una cola de entrada.
+  2. Mantiene un `tiempo_actual` que avanza de 0 hasta que todos los procesos hayan finalizado.
+  3. Usa una `cola_listos` (`deque`) para representar la cola de procesos listos para ejecutar.
+  4. Según `algoritmo`: selecciona el próximo proceso a ejecutar (política FCFS/SJF/SRTF o Round Robin con `quantum`).
+  5. Actualiza `tiempo_restante_cpu` del proceso en ejecución, registra en el `cronograma` que ese proceso usó la CPU en ese instante (marca `'X'`), y, si corresponde, actualiza la cola (preempciones o rotación por quantum).
+  6. Cuando un proceso completa su `tiempo_restante_cpu == 0`, registra su `instante_finalizacion`.
+  7. Continúa hasta que no queden procesos en entrada, cola ni CPU ocupada.
+* Valores devueltos: `cronograma, duracion_total, estadisticas_dict`.
 
-* Se mantiene un reloj `tiempo_actual` que avanza por unidades discretas.
-* `procesos_nuevos`: `deque` con procesos ordenados por llegada que aún no han entrado a la cola de listos.
-* `cola_listos`: `deque` que representa la cola de listos (ready queue).
-* `proceso_en_cpu`: referencia al proceso que está ejecutando en el instante.
-* `quantum_timer`: contador auxiliar para RR: cuando alcanza `quantum`, el proceso se vuelve a encolar.
-* `cronograma`: diccionario `pid -> lista` donde cada posición de la lista representa el estado del proceso en un instante de tiempo (por ejemplo `'X'` significa ejecutando en ese instante, un número como `'1'`, `'2'` indica posición en la cola, `''` o `' '` para estados vacíos o finalizados).
-* `instantes_finalizacion`: diccionario `pid -> tiempo_de_finalizacion` cuando un proceso termina.
+  * `cronograma`: estructura (diccionario) que mapea `pid` → lista de longitud igual a la duración de la simulación; cada elemento representa el estado del proceso en ese instante (`'X'` para ejecutando, cadena vacía o indicador de posición en cola según implementación interna).
+  * `duracion_total`: número entero de instantes simulados (longitud de la timeline).
+  * `estadisticas_dict`: diccionario `pid` → dict con claves `proceso`, `ti`, `t`, `tf`, `T`, `Te`, `I`:
 
-#### Implementación de algoritmos
+    * `ti`: instante de llegada.
+    * `t`: tiempo total de CPU (ráfaga original).
+    * `tf`: instante de finalización.
+    * `T`: turnaround = `tf - ti`.
+    * `Te`: tiempo de espera = `T - t`.
+    * `I`: `t / T` (proporción de tiempo activo dentro del turnaround), redondeada.
 
-* **FCFS (First-Come, First-Served):** no preemptivo. Cuando la CPU está libre, se extrae el primer proceso de `cola_listos` (`deque.popleft()`) y se ejecuta hasta su finalización.
+**Casos particulares y comportamiento por algoritmo:**
 
-* **SJF (Shortest Job First) — no preemptivo:** al seleccionar un proceso para ejecutar, la cola se ordena por `tiempo_cpu_total` y se escoge el más corto. No preempciona procesos en ejecución.
+* **FCFS**: no preemptivo. Cuando la CPU toma un proceso lo ejecuta hasta acabar.
+* **SJF**: selección no preemptiva del proceso con menor `tiempo_cpu_total` al momento de elegir.
+* **SRTF**: preemptivo: si llega un proceso con menor `tiempo_restante_cpu` que el actual, se preempciona.
+* **Round Robin**: asigna la CPU por intervalos (`quantum`); al agotarse el quantum el proceso se reencola si no terminó.
 
-* **SRTF (Shortest Remaining Time First) — preemptivo:** se compara el `tiempo_restante_cpu` del proceso en CPU con el de los que están en cola; si llega uno con menor tiempo restante, se preempciona (se reencola el actual y se ejecuta el más corto).
+**Complejidad:**
 
-* **Round Robin (RR) — preemptivo por quantum:** el planificador lleva un contador `quantum_timer`; si alcanza `quantum`, el proceso en CPU se reencola al final de `cola_listos` y la CPU pasa al siguiente.
+* La simulación avanza por instantes; en el peor caso la complejidad está acotada por `O(D * log P)` o `O(D * P)` según la implementación interna para seleccionar procesos, donde `D` es la duración total simulada y `P` el número de procesos. Para escalas didácticas (decenas de procesos, pocos cientos de instantes) el rendimiento es suficiente.
 
-#### Cálculo de estadísticas
+**Validaciones internas:**
 
-Para cada proceso `p` se calculan (nombres usados en la salida):
-
-* `ti`: instante de llegada (`instante_llegada`).
-* `t`: tiempo CPU total (`tiempo_cpu_total`).
-* `tf`: instante de finalización (cuando se termina de ejecutar por última vez).
-* `T`: tiempo de retorno / turnaround = `tf - ti`.
-* `Te`: tiempo de espera = `T - t`.
-* `I`: `t / T` (proporción del tiempo de retorno durante el cual el proceso estuvo ocupando CPU). Se redondea a 4 decimales. *Interpreta `I` como "porcentaje/proporción de uso activo dentro del turnaround".*
-
-La función `ejecutar_simulacion()` devuelve los datos listos para que la GUI los muestre.
-
----
-
-## 5.2 `gui.py` — Interfaz gráfica (Qt / PySide6)
-
-Este módulo define toda la interfaz: diálogo de errores, diálogo de edición de un proceso y la ventana principal (`MainWindow`).
-
-### Clases principales
-
-#### `CustomErrorDialog(QDialog)`
-
-Diálogo sencillo para mostrar mensajes de error al usuario (validaciones, inputs inválidos, etc.).
-
-#### `EditProcessDialog(QDialog)`
-
-Formulario que se utiliza para editar los datos de un proceso existente. Expone `get_data()` que devuelve un `dict` con los campos actualizados: `{"nombre":..., "llegada":..., "tiempo_cpu":...}`.
-
-#### `MainWindow(QMainWindow)` — descripción general
-
-**Responsabilidad:** crear y organizar los paneles de la aplicación, capturar entradas del usuario, mantener la lista de procesos, instanciar el `Planificador` y mostrar resultados.
-
-**Atributos clave (internos):**
-
-* `procesos_para_simular` (lista): almacena los objetos `Proceso` añadidos desde la UI.
-* `pid_counter` (int): contador incremental para asignar PIDs a los procesos nuevos (inicia en 1 y se incrementa con cada adición).
-* Widgets principales: `combo_algoritmo`, `input_quantum`, `tabla_procesos_nuevos`, `tabla_cronograma`, `tabla_estadisticas`, campos de entrada (`nombre_input`, `llegada_input`, `tiempo_cpu_input`).
-
-**Paneles y métodos de interés:**
-
-* `_crear_panel_base(title)`: plantilla para crear paneles con estilo (tarjetas).
-* `crear_panel_configuracion()`: panel con selector de algoritmo (`FCFS`, `SJF`, `SRTF`, `Round Robin`) y `quantum` (SpinBox oculto, visible solo para RR).
-* `crear_panel_agregar_proceso()`: formulario con campos `Nombre`, `Llegada` y `Tiempo en CPU`, y botón `Agregar Proceso`.
-* `crear_panel_procesos_agregados()`: tabla que muestra los procesos añadidos y botones para `Editar` / `Eliminar` por fila.
-* `crear_panel_cronograma()` y `crear_panel_estadisticas()`: paneles que contienen las tablas donde se muestran los resultados.
-
-**Acciones del usuario implementadas:**
-
-* `agregar_proceso_a_lista()`: valida las entradas, crea una instancia `Proceso(self.pid_counter, nombre, tiempo_cpu, llegada)`, la agrega a `procesos_para_simular`, incrementa `pid_counter`, y actualiza la tabla.
-* `iniciar_simulacion_ui()`: valida que haya procesos, crea `Planificador(procesos_para_simular, algoritmo, quantum)`, llama a `ejecutar_simulacion()` y pasa los resultados a `mostrar_cronograma()` y `mostrar_estadisticas()`.
-* `mostrar_cronograma(cronograma, duracion_total)`: pinta la tabla con el cronograma. Columnas = instantes de tiempo, filas = procesos (ordenados por PID). Los estados pueden ser:
-
-  * `'X'` → proceso en ejecución en ese instante.
-  * `"1"`, `"2"`, ... → posición en la cola de listos en ese instante (si aplica).
-  * `''` o `' '` → vacío / no aplicable.
-* `mostrar_estadisticas(estadisticas)`: rellena la tabla de estadísticas por proceso con `proceso, ti, t, tf, T, Te, I`.
-* `reiniciar_simulacion_ui()`: limpia `procesos_para_simular`, reinicia `pid_counter` a 1 y borra tablas y resultados.
-* `editar_proceso_ui(pid)` y `eliminar_proceso_ui(pid)`: permiten modificar o quitar procesos ya agregados.
-
-**Validaciones y UX:**
-
-* Los campos `Llegada` y `Tiempo en CPU` están validados para aceptar solo enteros dentro de rangos establecidos.
-* Si hay errores en entradas, se muestra `CustomErrorDialog` con el mensaje correspondiente.
+* Se usan copias de los objetos para no modificar la lista original de entrada.
+* El método evita bucles infinitos limitando la duración máxima (protección contra errores en algunos escenarios). Si la implementación tiene un límite (por ejemplo `tiempo_actual > 500`), revisa y ajusta según necesites simular escenarios más largos.
 
 ---
 
-## 5.3 `main.py`
+## `Codigos/gui.py` — Interfaz gráfica (GUI)
 
-Archivo mínimo que crea la aplicación Qt y lanza la ventana principal:
+**Resumen general:**
+Este archivo contiene la ventana principal y varios diálogos auxiliares. Gestiona la interacción con el usuario: creación y edición de procesos, selección de algoritmo y quantum, inicio de la simulación y despliegue del cronograma y las estadísticas calculadas por `core.Planificador`.
 
-```python
-from PySide6.QtWidgets import QApplication
-from gui import MainWindow
+### Clase `CustomErrorDialog(QDialog)`
 
-if __name__ == "__main__":
-    app = QApplication(sys.argv)
-    window = MainWindow()
-    window.show()
-    sys.exit(app.exec())
-```
+* **Responsabilidad:** mostrar mensajes de error o validación al usuario con estilo.
+* **Métodos relevantes:**
 
----
+  * `__init__(self, message, parent=None)`: crea el diálogo con el `message` que se mostrará; no devuelve nada.
+* Uso: llamado cuando las entradas del usuario no son válidas (ej. campos vacíos, valores no numéricos, quantum no válido, etc.).
 
-# 6. Formato de salida: cronograma y estadísticas
+### Clase `EditProcessDialog(QDialog)`
 
-## Cronograma
+* **Responsabilidad:** formulario modal que permite editar los datos de un proceso ya creado.
+* **Métodos relevantes:**
 
-* Tipo: `dict` donde cada clave es el `pid` y el valor es una lista. Cada elemento en la lista corresponde a un instante de tiempo (columna en la tabla) y contiene:
+  * `__init__(self, proceso, parent=None)`: inicializa el diálogo con los valores actuales del proceso (nombre, llegada, tiempo CPU) para que el usuario los modifique.
+  * `get_data(self)`: al cerrar con aceptar, devuelve un `dict` con las claves `"nombre"`, `"llegada"` y `"tiempo_cpu"` con los valores actualizados. Uso típico: `data = dialog.get_data()`.
 
-  * `'X'` si el proceso estuvo ejecutando en ese instante.
-  * Un número en cadena (`"1"`, "2", ...) que indica la posición del proceso en la cola de listos durante ese instante (si la implementación rellena esa información).
-  * `''` o `' '` para indicar ausencia de actividad.
+### Clase `MainWindow(QMainWindow)`
 
-**Duración total**: entero con la cantidad de instantes simulados (variable `duracion_total`).
+* **Responsabilidad:** controla la aplicación; contiene widgets, tablas y botones; gestiona la lista interna de procesos y coordina la ejecución de la simulación con `Planificador`.
 
-## Estadísticas por proceso
+**Atributos internos importantes:**
 
-Cada entrada es un diccionario con claves: `proceso` (texto descriptivo), `ti`, `t`, `tf`, `T`, `Te`, `I`.
+* `procesos_para_simular` (lista de `Proceso`): lista mutable que contiene los procesos añadidos desde la GUI.
+* `pid_counter` (int): generador de PIDs (se incrementa cada vez que se crea un proceso nuevo).
+* Widgets claves: `combo_algoritmo` (selector de algoritmo), `input_quantum` (QSpinBox para RR), `tabla_procesos_nuevos` (QTableWidget con los procesos definidos), `tabla_cronograma`, `tabla_estadisticas`, y campos de entrada (`nombre_input`, `llegada_input`, `tiempo_cpu_input`).
 
-* `ti` = instante de llegada.
-* `t` = tiempo en CPU.
-* `tf` = instante de finalización.
-* `T` = turnaround = `tf - ti`.
-* `Te` = tiempo de espera = `T - t`.
-* `I` = `t / T` (proporción del turnaround en ejecución activa).
+**Métodos principales y explicación por método:**
 
----
+* `__init__(self)`: construye toda la interfaz y conecta señales (botones, combos) con sus manejadores.
 
-# 7. Ejemplos de uso
+* `_crear_panel_base(self, title)`: utilidad interna que crea un marco/panel con título y estilo; usado por los paneles hijos para mantener consistencia visual.
 
-## 7.1 Uso por GUI
+* `crear_panel_controles(self)`: (o `crear_panel_configuracion`, según versión) crea el layout para seleccionar algoritmo, mostrar/ocultar `input_quantum` cuando se selecciona Round Robin y botones globales (Iniciar Simulación, Reiniciar, etc.).
 
-1. Ejecuta `python Codigos/main.py`.
-2. En "Configuración" elige por ejemplo `Round Robin` y ajusta `Quantum = 2`.
-3. Agrega procesos:
+  * **Efecto:** conecta la selección de algoritmo para disparar `toggle_quantum_input`.
 
-   * Nombre: P1, Llegada: 0, Tiempo en CPU: 5
-   * Nombre: P2, Llegada: 1, Tiempo en CPU: 3
-   * Nombre: P3, Llegada: 2, Tiempo en CPU: 6
-4. Pulsa `Iniciar Simulación`.
+* `crear_panel_configuracion(self)`: crea y arma los widgets específicos de configuración (combo de algoritmo, label/entrada de quantum, etc.).
 
-La tabla de cronograma mostrará en cada columna (instante de tiempo) qué proceso se ejecutó o quién estaba en la cola. La tabla de estadísticas muestra los tiempos calculados.
+* `crear_panel_agregar_proceso(self)`: crea los widgets del formulario para agregar un proceso (Nombre, Llegada, Tiempo CPU) y el botón `Agregar Proceso`.
 
-## 7.2 Uso programático (sin GUI)
+  * **Validaciones realizadas:** campos numéricos validados con `QIntValidator` o `QSpinBox`; se verifica que la llegada y tiempo sean enteros positivos; se asegura que el nombre sea no vacío o se genera uno por defecto.
 
-Puedes usar las clases en `core.py` desde un script Python para hacer tests automáticos o análisis por lotes.
+* `crear_panel_procesos_agregados(self)`: crea la tabla que muestra los procesos añadidos y botones para editar/eliminar por fila.
 
-```python
-from core import Proceso, Planificador
+* `crear_panel_cronograma(self)`: crea la tabla donde se volcará el cronograma resultado de la simulación.
 
-p1 = Proceso(1, 'P1', 5, 0)
-p2 = Proceso(2, 'P2', 3, 1)
-p3 = Proceso(3, 'P3', 6, 2)
+* `crear_panel_estadisticas(self)`: crea la tabla donde se mostrarán las métricas por proceso (ti, t, tf, T, Te, I).
 
-plan = Planificador([p1,p2,p3], algoritmo='Round Robin', quantum=2)
-cronograma, duracion_total, estadisticas = plan.ejecutar_simulacion()
+* `agregar_proceso_a_lista(self)`: **manejador** del botón "Agregar Proceso".
 
-print('Duración total:', duracion_total)
-print('Cronograma:', cronograma)
-print('Estadísticas:')
-for pid, data in estadisticas.items():
-    print(pid, data)
-```
+  * Lee los valores de `nombre_input`, `llegada_input` y `tiempo_cpu_input`.
+  * Valida entradas (enteros, rangos, no negativos) y muestra `CustomErrorDialog` si falla.
+  * Crea `Proceso(self.pid_counter, nombre, tiempo_cpu, llegada)` y lo añade a `procesos_para_simular`.
+  * Incrementa `pid_counter` y actualiza la tabla de procesos agregados llamando a `_actualizar_tabla_procesos_nuevos()`.
 
----
+* `iniciar_simulacion_ui(self)`: **manejador** del botón "Iniciar Simulación".
 
-# 8. Posibles errores y solución de problemas
+  * Verifica que exista al menos un proceso en `procesos_para_simular`.
+  * Lee opción de algoritmo y quantum (si aplica).
+  * Instancia `Planificador(procesos_para_simular, algoritmo, quantum)` y llama `ejecutar_simulacion()`.
+  * Recibe `cronograma, duracion_total, estadisticas` y llama a `mostrar_cronograma()` y `mostrar_estadisticas()` para renderizar tablas.
 
-### Error: `ModuleNotFoundError: No module named 'PySide6'`
+* `mostrar_cronograma(self, cronograma, duracion_total)`: renderiza la tabla de cronograma en la GUI.
 
-Instala las dependencias: `pip install -r requirements.txt` o instala PySide6 manualmente: `pip install PySide6==6.9.2`.
+  * Columnas: instantes `0..duracion_total-1`.
+  * Filas: procesos (ordenados por PID o el orden que decida la interfaz).
+  * Marca con `'X'` los instantes que cada proceso ejecutó, puede colorear celdas o ajustar fuente para mayor claridad.
 
-### Problemas con `requirements.txt` (codificación UTF-16)
+* `mostrar_estadisticas(self, estadisticas)`: rellena la tabla de estadísticas con los campos `proceso, ti, t, tf, T, Te, I` para cada proceso.
 
-Si `pip` se queja al leer el archivo (error de codificación), abre `requirements.txt` en un editor y vuelve a guardarlo en UTF-8, o usa la línea de instalación manual indicada arriba.
+* `reiniciar_simulacion_ui(self)`: limpia la lista `procesos_para_simular`, reinicia `pid_counter` y borra las tablas de cronograma y estadísticas para empezar de cero.
 
-### La ventana no aparece o falla al iniciar la aplicación (Qt plugin errors)
+* `_actualizar_tabla_procesos_nuevos(self)`: función auxiliar que recarga `tabla_procesos_nuevos` con los procesos actuales de `procesos_para_simular`. Incluye columnas para `PID`, `Nombre`, `Llegada`, `Tiempo CPU` y acciones (Editar / Eliminar).
 
-* En Linux, puede faltar la plataforma Qt (paquetes del sistema). Instala las dependencias Qt de tu distribución o prueba con un entorno virtual y la versión correcta de PySide.
-* Revisa el `stderr` para ver mensajes sobre `Qt platform` y busca soluciones específicas a tu SO.
+* `eliminar_proceso_ui(self, pid)`: quita el proceso con `pid` de `procesos_para_simular` y llama a `_actualizar_tabla_procesos_nuevos()`.
 
-### Otros consejos de depuración
+* `editar_proceso_ui(self, pid)`: abre `EditProcessDialog` para el proceso identificado; si el usuario acepta los cambios, actualiza el objeto `Proceso` y la tabla.
 
-* Añade `print()` en `core.py` dentro del bucle de simulación para trazar `tiempo_actual`, `cola_listos` y `proceso_en_cpu` si necesitas entender por qué un proceso no termina.
-* Si el cronograma muestra demasiadas columnas o bucles, hay una protección (`if tiempo_actual > 500: break`) para evitar bucles infinitos; puedes ajustar ese valor para pruebas más largas.
+* `toggle_quantum_input(self, text)`: muestra u oculta el `input_quantum` de la GUI dependiendo de si el algoritmo seleccionado es `Round Robin`.
+
+**Validaciones y UX en la GUI:**
+
+* La GUI valida entradas en el frontend (QIntValidator, checkeo de valores) antes de construir objetos `Proceso`.
+* Los errores de usuario se comunican con `CustomErrorDialog`.
+* La interfaz prioriza claridad: tablas con encabezados fijos, scroll si la duración es amplia, y ocultación de `quantum` cuando no aplica.
 
 ---
 
-# 9. Extensiones recomendadas
+## `Codigos/main.py` — Punto de entrada
 
-Ideas para mejorar o ampliar el proyecto:
+**Responsabilidad:** inicializar la aplicación Qt y abrir la ventana principal.
 
-* Exportar cronograma y estadísticas a CSV o PDF.
-* Añadir visualizaciones gráficas (barras de tiempo) usando `matplotlib` o exportar a imagen.
-* Permitir parámetros adicionales por proceso (prioridad, E/S simulada) y agregar algoritmos con prioridades.
-* Implementar métricas agregadas (promedio de tiempo de espera, promedio de turnaround, utilización CPU global).
-* Añadir tests unitarios que creen escenarios concretos y verifiquen resultados (por ejemplo, comparar la salida del planificador contra un resultado esperado conocido).
+**Contenido y comportamiento:**
 
----
+* Importa `QApplication` y `MainWindow`.
+* Crea la instancia `app = QApplication(sys.argv)`.
+* Instancia `window = MainWindow()` y la muestra con `window.show()`.
+* Llama a `sys.exit(app.exec())` para iniciar el loop de eventos de Qt.
 
-# 10. Información adicional y licencia
+**Notas:**
 
-* Autor / Grupo: **Grupo #7, Sección "B"** (según README original del repositorio).
-* Licencia: puedes añadir tu licencia preferida (por defecto no incluida). Una opción habitual es MIT.
+* No contiene lógica de la simulación; su única función es ejecutar la GUI. Esto facilita usar `core.py` desde scripts o tests sin inicializar la GUI.
 
 ---
 
-# Apéndice: Glosario de variables y conceptos
+# Notas finales y recomendaciones de mantenimiento
 
-* **PID**: identificador único de proceso.
-* **Instante de llegada (ti)**: momento en que el proceso entra al sistema.
-* **Tiempo en CPU (t)**: ráfaga total necesaria por el proceso.
-* **Tiempo de finalización (tf)**: instante en que el proceso terminó su ejecución completa.
-* **Turnaround (T)**: `tf - ti`.
-* **Tiempo de espera (Te)**: `T - t`.
-* **Quantum**: tiempo máximo de CPU otorgado por turno en Round Robin.
+* Documenta cualquier cambio interno en `core.Planificador` (si agregas nuevos algoritmos o métricas, actualiza el README y los tests).
+* Si vas a ampliar la GUI con importación/exportación, añade `Codigos/io.py` (o un paquete `utils/`) para separar la lógica de E/S y mantener la GUI limpia.
+* Añade pruebas unitarias (`tests/`) que instancien `Planificador` con escenarios controlados y verifiquen que `estadisticas_dict` coincide con resultados esperados.
 
----
 
-Si quieres, puedo:
-
-* Generar una **versión PDF** de este manual técnico.
-* Añadir ejemplos concretos con imágenes (capturas de la GUI) si me proporcionas capturas.
-* Crear tests unitarios de referencia para los algoritmos (archivos `tests/test_*`).
-
-¡Listo! Revisa el documento y dime si quieres que lo adapte a otro formato (PDF, DOCX), que incluya diagramas o ejemplos más detallados para un algoritmo en particular.
