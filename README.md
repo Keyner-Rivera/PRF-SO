@@ -128,3 +128,12 @@ Archivo de inicio de la aplicación.
 ```bash
 python Codigos/main.py
 ```
+
+Interfaz del Simulador de Procesos
+
+La aplicación cuenta con una interfaz gráfica intuitiva que permite al usuario configurar y observar la ejecución de procesos bajo distintos algoritmos de planificación (FCFS, SJF, SRTF y Round Robin).
+
+![Uploading image-1.png…]()
+
+
+
