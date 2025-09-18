@@ -128,3 +128,9 @@ Archivo de inicio de la aplicación.
 ```bash
 python Codigos/main.py
 ```
+
+Interfaz Principal y Configuración
+
+Esta es la interfaz principal del simulador. Aquí, el usuario puede ver los diferentes paneles para la configuración, la creación de procesos, el cronograma de ejecución y las métricas finales. En la sección "Configuración", se puede seleccionar el algoritmo de planificación que se va a utilizar para la simulación.
+
+![alt text](image-1.png)
