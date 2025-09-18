@@ -3,6 +3,13 @@
 **Proyecto:** PR2-SO — Segundo Proyecto de Sistemas Operativos (Grupo #7, Sección B)
 
 ---
+## 📌 Introducción
+
+El presente proyecto implementa un **simulador gráfico de algoritmos de planificación de procesos**.  
+Su función es modelar el comportamiento de la CPU al ejecutar procesos bajo distintos esquemas, tales como **First Come First Served (FCFS), Shortest Job First (SJF), Round Robin y Prioridades**.  
+
+A través de la aplicación, el usuario puede ingresar procesos, ejecutar los algoritmos y obtener **resultados numéricos y visuales** que incluyen métricas de rendimiento y un **diagrama de Gantt** que muestra la secuencia de ejecución.  
+De esta manera, el programa facilita el **análisis comparativo y el aprendizaje** de las técnicas de planificación utilizadas en sistemas operativos.
 
 # Requisitos técnicos
 
