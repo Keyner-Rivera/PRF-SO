@@ -133,5 +133,51 @@ Interfaz del Simulador de Procesos
 
 La aplicación cuenta con una interfaz gráfica intuitiva que permite al usuario configurar y observar la ejecución de procesos bajo distintos algoritmos de planificación (FCFS, SJF, SRTF y Round Robin).
 
+![alt text](image.png)
 
+Selección del Algoritmo
+En este paso, el usuario elige uno de los algoritmos de planificación disponibles, como se especifica en la documentación. Las opciones incluyen:
 
+FCFS (Primero en llegar, primero en ser atendido)
+SJF (El trabajo más corto primero)
+SRTF (Tiempo restante más corto primero)
+Round Robin (Partido redondo)
+
+![alt text](image-1.png)
+
+Creación de un Proceso
+En el panel "Añadir Proceso", el usuario ingresa los datos de un nuevo proceso para la simulación. En la imagen, se está creando un proceso con las siguientes características:
+
+Nombre del proceso: "Ejemplo 1"
+Instante de Llegada: "3" (unidades de tiempo)
+Tiempo en CPU: "5" (unidades de tiempo)
+
+![alt text](image-2.png)
+
+Visualización de Procesos a Simular
+Una vez creados, los procesos se listan en el panel "Procesos a Simular". Aquí se pueden ver sus atributos clave:
+
+PID: El identificador único del proceso, que se genera automáticamente.
+Nombre: El nombre asignado por el usuario.
+Llegada: El instante en que el proceso llega al sistema.
+CPU: El tiempo total de CPU que necesita.
+Esta tabla permite al usuario revisar y gestionar los procesos antes de iniciar la simulación.
+
+![alt text](image-3.png)
+
+Cronograma de Ejecución
+Esta imagen muestra el "Cronograma de Ejecución" o diagrama de Gantt. Después de que se ha iniciado la simulación, este panel muestra cómo la CPU ejecuta cada proceso a lo largo del tiempo, de acuerdo con el algoritmo de planificación seleccionado. Cada fila representa un proceso (como "Ejemplo 1 (P3)"), y las celdas de colores indican el tiempo que la CPU le dedica a cada uno. La "X" podría representar tiempo de espera o inactividad de la CPU. En este caso, el cronograma corresponde al algoritmo FCFS.
+
+![alt text](image-4.png)
+
+Historial y Métricas Finales
+Una vez que la simulación ha avanzado, el panel "Historial y Métricas Finales" se llena con los resultados de los procesos que han terminado. Esta tabla proporciona datos cruciales para analizar la eficiencia del algoritmo, incluyendo:
+
+Llegada (ti): Instante en que el proceso llegó.
+CPU (t): Tiempo total que necesitó en la CPU.
+Finalización (tf): Instante en que el proceso terminó.
+Retorno (T): El tiempo que el proceso pasó en el sistema (desde que llegó hasta que terminó).
+Espera (Te): El tiempo total que el proceso esperó en la cola antes de ser ejecutado.
+Índice (I=t/T): Una métrica de rendimiento que relaciona el tiempo de CPU con el tiempo de retorno.
+
+![alt text](image-5.png)
