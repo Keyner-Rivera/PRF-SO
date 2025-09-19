@@ -11,7 +11,7 @@ class Proceso:
             self.nombre = nombre
             self.instante_llegada = instante_llegada
             
-            
+
             # Estas variables "privadas" almacenarán los valores reales.
             self._tiempo_cpu_total = 0 
             self.tiempo_restante_cpu = 0
@@ -31,15 +31,12 @@ class Proceso:
     def tiempo_cpu_total(self, value):
         """
         Este es el "setter". Se ejecuta cuando asignas un valor, 
-        (ej: 'proceso.tiempo_cpu_total = 5').
-        Aquí es donde ocurre la magia de la sincronización.
+        (ej: 'proceso.tiempo_cpu_total = 5'). Aquí sincronizamos
+        'tiempo_restante_cpu' con el nuevo valor.
         """
         self._tiempo_cpu_total = value
         self.tiempo_restante_cpu = value
 
-
-        # Atributos que cambiarán durante la simulación
-        #self.tiempo_restante_cpu = self.tiempo_cpu_total
 
 class Planificador:
     """
@@ -101,34 +98,33 @@ class Planificador:
                     cola_listos = deque(sorted(list(cola_listos), key=lambda p: p.tiempo_restante_cpu))
                     proceso_en_cpu = cola_listos.popleft()
                 quantum_timer = 0
-            
-            # --- YIELD: Entregamos el estado actual a la GUI ---
-            # Preparamos el estado de cada proceso para este instante de tiempo
+
             estados_del_tick = {}
-            
-            # Ordenamos la cola de listos para una visualización consistente
             cola_listos_display = cola_listos
+            # ... (código para preparar estados_del_tick se mantiene igual) ...
             if self.algoritmo == "SJF":
                 cola_listos_display = deque(sorted(list(cola_listos), key=lambda p: p.tiempo_cpu_total))
             elif self.algoritmo == "SRTF":
                 cola_listos_display = deque(sorted(list(cola_listos), key=lambda p: p.tiempo_restante_cpu))
-            
             pids_en_cola = {p.pid: i for i, p in enumerate(cola_listos_display)}
-
             for p_orig in self.procesos_originales:
                 estado_actual = ''
-                if p_orig.pid in instantes_finalizacion: estado_actual = '' 
-                elif tiempo_actual < p_orig.instante_llegada: estado_actual = '' 
-                elif proceso_en_cpu and p_orig.pid == proceso_en_cpu.pid: estado_actual = 'X' 
+                if p_orig.pid in instantes_finalizacion: estado_actual = ''
+                elif tiempo_actual < p_orig.instante_llegada: estado_actual = ''
+                elif proceso_en_cpu and p_orig.pid == proceso_en_cpu.pid: estado_actual = 'X'
                 elif p_orig.pid in pids_en_cola: estado_actual = str(pids_en_cola[p_orig.pid] + 1)
                 else: estado_actual = ' '
                 estados_del_tick[p_orig.pid] = estado_actual
-            
-            # La palabra clave 'yield' pausa la función y entrega el valor.
-            # La próxima vez que se llame, continuará desde aquí.
-            yield tiempo_actual, estados_del_tick
-            # ---------------------------------------------------
 
+            # Calculamos el tiempo total restante de todos los procesos activos
+            tiempo_restante_total = (proceso_en_cpu.tiempo_restante_cpu if proceso_en_cpu else 0) + \
+                                    sum(p.tiempo_restante_cpu for p in cola_listos) + \
+                                    sum(p.tiempo_restante_cpu for p in procesos_nuevos)
+            
+            # Modificamos el yield para que también entregue el tiempo restante
+            yield tiempo_actual, estados_del_tick, tiempo_restante_total           
+
+            
             # 4. Procesar el tick de tiempo en la CPU
             if proceso_en_cpu:
                 proceso_en_cpu.tiempo_restante_cpu -= 1
