@@ -1,4 +1,5 @@
 import sys
+from PySide6.QtCore import Qt, QTimer
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QLineEdit, QPushButton, QTableWidget, QTableWidgetItem,
@@ -29,6 +30,9 @@ class CustomErrorDialog(QDialog):
         ok_button.clicked.connect(self.accept)
         layout.addWidget(ok_button, alignment=Qt.AlignCenter)
         self.adjustSize()
+        
+
+
 
 class EditProcessDialog(QDialog):
     """Un diálogo para editar los detalles de un proceso existente."""
@@ -118,6 +122,16 @@ class MainWindow(QMainWindow):
         self.main_layout.addLayout(self.controles_layout, 3)
         self.main_layout.addWidget(right_column_widget, 5)
 
+        # Temporizador para la animación
+        self.animation_timer = QTimer(self)
+        self.animation_timer.timeout.connect(self._avanzar_simulacion_paso)
+        
+        # Variable para almacenar el generador de la simulación
+        self.simulation_generator = None
+
+
+
+
     def _crear_panel_base(self, title):
         panel_frame = QFrame(); panel_frame.setObjectName("card")
         panel_layout = QVBoxLayout(panel_frame)
@@ -206,14 +220,83 @@ class MainWindow(QMainWindow):
     
     def iniciar_simulacion_ui(self):
         if not self.procesos_para_simular:
-            CustomErrorDialog("Agrega al menos un proceso antes de iniciar.", self).exec(); return
+            CustomErrorDialog("Agrega al menos un proceso antes de iniciar.", self).exec()
+            return
+        
+        # Deshabilitar botones para evitar conflictos durante la animación
+        self.btn_iniciar.setEnabled(False)
+        self.btn_reiniciar.setEnabled(True)
+        self.btn_agregar.setEnabled(False)
+
         algoritmo = self.combo_algoritmo.currentText()
-        self.cronograma_title_label.setText(f"Cronograma de Ejecución ({algoritmo})")
+        self.cronograma_title_label.setText(f"Cronograma de Ejecución ({algoritmo}) - Ejecutando...")
+        
+        # Preparamos la tabla del cronograma
+        self.tabla_cronograma.clear()
+        procesos_ordenados = sorted(self.procesos_para_simular, key=lambda p: p.pid)
+        self.tabla_cronograma.setRowCount(len(procesos_ordenados))
+        self.tabla_cronograma.setVerticalHeaderLabels([f"{p.nombre} (P{p.pid})" for p in procesos_ordenados])
+        self.tabla_cronograma.setColumnCount(50) # Un número inicial de columnas
+        self.tabla_cronograma.setHorizontalHeaderLabels([str(i) for i in range(50)])
+
+        # Creamos el planificador y OBTENEMOS EL GENERADOR
         planificador = Planificador(self.procesos_para_simular, algoritmo, self.input_quantum.value())
-        cronograma, duracion_total, estadisticas_dict = planificador.ejecutar_simulacion()
-        estadisticas_ordenadas = [estadisticas_dict[p.pid] for p in self.procesos_para_simular if p.pid in estadisticas_dict]
-        self.mostrar_cronograma(cronograma, duracion_total)
-        self.mostrar_estadisticas(estadisticas_ordenadas)
+        self.simulation_generator = planificador.ejecutar_simulacion()
+        
+        # Limpiamos tablas anteriores
+        self.tabla_estadisticas.setRowCount(0)
+
+        # Iniciamos el temporizador para que se ejecute cada 1 segundo (1000 ms)
+        self.animation_timer.start(1000)
+
+
+    def _avanzar_simulacion_paso(self):
+        try:
+            # Pedimos el siguiente estado al generador
+            tiempo_actual, estados_del_tick = next(self.simulation_generator)
+            
+            # Si necesitamos más columnas en la tabla, las añadimos
+            if tiempo_actual >= self.tabla_cronograma.columnCount():
+                self.tabla_cronograma.setColumnCount(tiempo_actual + 10)
+                # Actualizamos las cabeceras para las nuevas columnas
+                self.tabla_cronograma.setHorizontalHeaderLabels([str(i) for i in range(self.tabla_cronograma.columnCount())])
+
+
+            procesos_ordenados = sorted(self.procesos_para_simular, key=lambda p: p.pid)
+            
+            # Rellenamos la columna para el tiempo_actual
+            for r, p in enumerate(procesos_ordenados):
+                estado = estados_del_tick.get(p.pid, "")
+                item = QTableWidgetItem(str(estado))
+                item.setTextAlignment(Qt.AlignCenter)
+
+                if estado == 'X':
+                    item.setBackground(QColor("#22c55e"))
+                    item.setForeground(QColor("#ffffff"))
+                elif estado.isdigit():
+                    item.setBackground(QColor("#f97316"))
+                
+                self.tabla_cronograma.setItem(r, tiempo_actual, item)
+            
+            # Hacemos scroll para que la columna actual sea visible
+            self.tabla_cronograma.scrollToItem(self.tabla_cronograma.item(0, tiempo_actual))
+
+        except StopIteration as e:
+            # El generador se ha agotado (la simulación terminó)
+            self.animation_timer.stop()
+            self.cronograma_title_label.setText(f"Cronograma de Ejecución ({self.combo_algoritmo.currentText()}) - Finalizado")
+            
+            # El valor de 'return' del generador está en e.value
+            estadisticas_dict = e.value
+            if estadisticas_dict:
+                 estadisticas_ordenadas = [estadisticas_dict[p.pid] for p in self.procesos_para_simular if p.pid in estadisticas_dict]
+                 self.mostrar_estadisticas(estadisticas_ordenadas)
+            
+            # Volvemos a habilitar los botones
+            self.btn_iniciar.setEnabled(True)
+            self.btn_reiniciar.setEnabled(True)
+            self.btn_agregar.setEnabled(True)
+
 
     def mostrar_cronograma(self, cronograma, duracion_total):
         self.tabla_cronograma.clearContents()
@@ -258,11 +341,18 @@ class MainWindow(QMainWindow):
             self.tabla_estadisticas.setItem(avg_row, 6, promedio_item)
 
     def reiniciar_simulacion_ui(self):
+        self.animation_timer.stop() # Detenemos el timer por si acaso
+        self.procesos_para_simular.clear()
+        self.pid_counter = 1
         self.procesos_para_simular.clear(); self.pid_counter = 1
         for table in [self.tabla_procesos_nuevos, self.tabla_cronograma, self.tabla_estadisticas]:
             table.setRowCount(0)
         self.tabla_cronograma.setColumnCount(0); self.btn_iniciar.setEnabled(True)
         self.cronograma_title_label.setText("Cronograma de Ejecución")
+        # Reactivamos TODOS los botones para dejar la UI en su estado inicial.
+        self.btn_iniciar.setEnabled(True)
+        self.btn_agregar.setEnabled(True)  # <-- Esta línea faltaba y causaba el bug #2
+        self.btn_reiniciar.setEnabled(True)
 
     def _actualizar_tabla_procesos_nuevos(self):
         self.tabla_procesos_nuevos.setRowCount(0)
