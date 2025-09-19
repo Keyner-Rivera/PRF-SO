@@ -4,13 +4,22 @@ from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QLineEdit, QPushButton, QTableWidget, QTableWidgetItem,
     QHeaderView, QFrame, QDialog, QComboBox, QSpinBox, QScrollArea,
-    QDialogButtonBox,QProgressBar
+    QDialogButtonBox
 )
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QIntValidator, QColor, QFont
 
 # Importamos las clases necesarias del módulo de lógica
 from core import Proceso, Planificador
+
+"""
+feat: agregar cuadro de diálogo de error personalizado con estilo moderno
+ui: implementar CustomErrorDialog con mensaje y botón aceptar
+style: aplicar colores oscuros y botón rojo en el diálogo de error
+fix: centralizar mensaje y ajustar tamaño automático del diálogo
+refactor: encapsular lógica de errores en clase CustomErrorDialog
+"""
+
 
 class CustomErrorDialog(QDialog):
     """Un diálogo de error personalizado y estilizado."""
@@ -86,7 +95,6 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.procesos_para_simular = []
         self.pid_counter = 1
-        self.total_cpu_work = 0
 
         self.setWindowTitle("Simulador de Planificación de CPU - Vista de Cronograma")
         self.setGeometry(50, 50, 1800, 900)
@@ -149,35 +157,8 @@ class MainWindow(QMainWindow):
         controles_main_layout.addLayout(top_panels_layout)
         processes_list_panel = self.crear_panel_procesos_agregados()
         controles_main_layout.addWidget(processes_list_panel)
-
-        # 1. Creamos y añadimos el nuevo QLabel para el título
-        self.progress_label = QLabel("Progreso Total")
-        self.progress_label.setStyleSheet("font-weight: bold; color: #94a3b8; margin-top: 5px;")
-        controles_main_layout.addWidget(self.progress_label)
-
-        # 2. Configuramos la barra de progreso 
-        self.progress_bar = QProgressBar()
-        self.progress_bar.setRange(0, 100)
-        self.progress_bar.setValue(0)
-        self.progress_bar.setTextVisible(False) 
-        self.progress_bar.setFormat("") 
-        self.progress_bar.setStyleSheet("""
-            QProgressBar { 
-                border: 1px solid #334155; 
-                border-radius: 5px; 
-                text-align: center; 
-                color: #e2e8f0;
-                max-height: 12px;
-            }
-            QProgressBar::chunk { 
-                background-color: #3b82f6; 
-                border-radius: 8px;
-            }
-        """)
-        controles_main_layout.addWidget(self.progress_bar)
         controles_main_layout.addStretch(1)
         return controles_main_layout
-    
 
     def crear_panel_configuracion(self):
         panel, layout, _ = self._crear_panel_base("Configuración")
@@ -253,13 +234,8 @@ class MainWindow(QMainWindow):
         
         # Deshabilitar botones para evitar conflictos durante la animación
         self.btn_iniciar.setEnabled(False)
-        self.btn_agregar.setEnabled(False)
-
         self.btn_reiniciar.setEnabled(True)
-
-        # Calcular el trabajo total y reiniciar la barra de progreso
-        self.total_cpu_work = sum(p.tiempo_cpu_total for p in self.procesos_para_simular)
-        self.progress_bar.setValue(0)        
+        self.btn_agregar.setEnabled(False)
 
         algoritmo = self.combo_algoritmo.currentText()
         self.cronograma_title_label.setText(f"Cronograma de Ejecución ({algoritmo}) - Ejecutando...")
@@ -268,10 +244,9 @@ class MainWindow(QMainWindow):
         self.tabla_cronograma.clear()
         procesos_ordenados = sorted(self.procesos_para_simular, key=lambda p: p.pid)
         self.tabla_cronograma.setRowCount(len(procesos_ordenados))
-        self.tabla_cronograma.setVerticalHeaderLabels([f"{p.nombre} (P{p.pid} )" for p in procesos_ordenados])
+        self.tabla_cronograma.setVerticalHeaderLabels([f"{p.nombre} (P{p.pid})" for p in procesos_ordenados])
         self.tabla_cronograma.setColumnCount(50) # Un número inicial de columnas
         self.tabla_cronograma.setHorizontalHeaderLabels([str(i) for i in range(50)])
-        self.tabla_cronograma.horizontalHeader().setDefaultSectionSize(35)
 
         # Creamos el planificador y OBTENEMOS EL GENERADOR
         planificador = Planificador(self.procesos_para_simular, algoritmo, self.input_quantum.value())
@@ -280,20 +255,15 @@ class MainWindow(QMainWindow):
         # Limpiamos tablas anteriores
         self.tabla_estadisticas.setRowCount(0)
 
-        # Iniciamos el temporizador para que se ejecute cada 0.5 segundos (500 ms)
-        self.animation_timer.start(500)
+        # Iniciamos el temporizador para que se ejecute cada 1 segundo (1000 ms)
+        self.animation_timer.start(1000)
 
 
     def _avanzar_simulacion_paso(self):
         try:
             # Pedimos el siguiente estado al generador
-            tiempo_actual, estados_del_tick, tiempo_restante_total = next(self.simulation_generator)
+            tiempo_actual, estados_del_tick = next(self.simulation_generator)
             
-            if self.total_cpu_work > 0:
-                trabajo_realizado = self.total_cpu_work - tiempo_restante_total
-                porcentaje = (trabajo_realizado / self.total_cpu_work) * 100
-                self.progress_bar.setValue(int(porcentaje))
-
             # Si necesitamos más columnas en la tabla, las añadimos
             if tiempo_actual >= self.tabla_cronograma.columnCount():
                 self.tabla_cronograma.setColumnCount(tiempo_actual + 10)
@@ -324,8 +294,7 @@ class MainWindow(QMainWindow):
             # El generador se ha agotado (la simulación terminó)
             self.animation_timer.stop()
             self.cronograma_title_label.setText(f"Cronograma de Ejecución ({self.combo_algoritmo.currentText()}) - Finalizado")
-            self.progress_bar.setValue(100)
-
+            
             # El valor de 'return' del generador está en e.value
             estadisticas_dict = e.value
             if estadisticas_dict:
@@ -367,7 +336,7 @@ class MainWindow(QMainWindow):
             self.tabla_estadisticas.setItem(r, 3, QTableWidgetItem(str(data["tf"])))
             self.tabla_estadisticas.setItem(r, 4, QTableWidgetItem(str(data["T"])))
             self.tabla_estadisticas.setItem(r, 5, QTableWidgetItem(str(data["Te"])))
-            self.tabla_estadisticas.setItem(r, 6, QTableWidgetItem(f'{data["I"]:.2f}')) 
+            self.tabla_estadisticas.setItem(r, 6, QTableWidgetItem(f'{data["I"]:.2f}')) # <-- Cambio a 2 decimales
             total_indices += data["I"]
         if estadisticas:
             promedio = total_indices / len(estadisticas)
@@ -376,12 +345,12 @@ class MainWindow(QMainWindow):
             self.tabla_estadisticas.setSpan(avg_row, 0, 1, 6)
             bold_font = QFont(); bold_font.setBold(True)
             label_item = QTableWidgetItem("Promedio Índice de Servicio (I)"); label_item.setTextAlignment(Qt.AlignCenter); label_item.setFont(bold_font)
-            promedio_item = QTableWidgetItem(f"{promedio:.2f}"); promedio_item.setTextAlignment(Qt.AlignCenter); promedio_item.setFont(bold_font) 
+            promedio_item = QTableWidgetItem(f"{promedio:.2f}"); promedio_item.setTextAlignment(Qt.AlignCenter); promedio_item.setFont(bold_font) # <-- Cambio a 2 decimales
             self.tabla_estadisticas.setItem(avg_row, 0, label_item)
             self.tabla_estadisticas.setItem(avg_row, 6, promedio_item)
 
     def reiniciar_simulacion_ui(self):
-        self.animation_timer.stop() # Detenemos el timer 
+        self.animation_timer.stop() # Detenemos el timer por si acaso
         self.procesos_para_simular.clear()
         self.pid_counter = 1
         self.procesos_para_simular.clear(); self.pid_counter = 1
@@ -389,11 +358,9 @@ class MainWindow(QMainWindow):
             table.setRowCount(0)
         self.tabla_cronograma.setColumnCount(0); self.btn_iniciar.setEnabled(True)
         self.cronograma_title_label.setText("Cronograma de Ejecución")
-        self.progress_bar.setValue(0)
-        
         # Reactivamos TODOS los botones para dejar la UI en su estado inicial.
         self.btn_iniciar.setEnabled(True)
-        self.btn_agregar.setEnabled(True)  
+        self.btn_agregar.setEnabled(True)  # <-- Esta línea faltaba y causaba el bug #2
         self.btn_reiniciar.setEnabled(True)
 
     def _actualizar_tabla_procesos_nuevos(self):
@@ -407,7 +374,7 @@ class MainWindow(QMainWindow):
             self.tabla_procesos_nuevos.setItem(row, 2, QTableWidgetItem(str(p.instante_llegada)))
             self.tabla_procesos_nuevos.setItem(row, 3, QTableWidgetItem(str(p.tiempo_cpu_total)))
             
-            btn_editar = QPushButton("✎"); btn_editar.setStyleSheet(btn_style) 
+            btn_editar = QPushButton("✎"); btn_editar.setStyleSheet(btn_style) # <-- Icono minimalista
             btn_eliminar = QPushButton("✕"); btn_eliminar.setStyleSheet(btn_style.replace("#3b82f6", "#ef4444").replace("#2563eb", "#dc2626")) # <-- Icono minimalista
             
             pid = p.pid
