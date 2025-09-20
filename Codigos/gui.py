@@ -280,8 +280,8 @@ class MainWindow(QMainWindow):
         # Limpiamos tablas anteriores
         self.tabla_estadisticas.setRowCount(0)
 
-        # Iniciamos el temporizador para que se ejecute cada 0.3 segundos (300 ms)
-        self.animation_timer.start(300)
+        # Iniciamos el temporizador para que se ejecute cada 0.5 segundos (500 ms)
+        self.animation_timer.start(500)
 
 
     def _avanzar_simulacion_paso(self):
