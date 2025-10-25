@@ -1,12 +1,12 @@
 # Simulador de Planificación de Procesos — Manual técnico
 
-**Proyecto:** PR2-SO — Segundo Proyecto de Sistemas Operativos (Grupo #7, Sección B)
+**Proyecto:** PRF-SO — Proyecto Final de Sistemas Operativos (Grupo #7, Sección B)
 
 ---
 ## 📌 Introducción
 
 El presente proyecto implementa un **simulador gráfico de algoritmos de planificación de procesos**.  
-Su función es modelar el comportamiento de la CPU al ejecutar procesos bajo distintos esquemas, tales como **First Come First Served (FCFS), Shortest Job First (SJF), Round Robin y Prioridades**.  
+Su función es modelar el comportamiento de la CPU al ejecutar procesos bajo distintos esquemas, tales como **First Come First Served (FCFS), Shortest Job First (SJF) y Round Robin**.  
 
 A través de la aplicación, el usuario puede ingresar procesos, ejecutar los algoritmos y obtener **resultados numéricos y visuales** que incluyen métricas de rendimiento y un **diagrama de Gantt** que muestra la secuencia de ejecución.  
 De esta manera, el programa facilita el **análisis comparativo y el aprendizaje** de las técnicas de planificación utilizadas en sistemas operativos.
@@ -41,7 +41,7 @@ Se requiere tener instalado Python y `pip` para gestionar dependencias.
 **Estructura de carpetas:**
 
 ```
-PR2-SO/
+PRF-SO/
 ├─ Codigos/
 │  ├─ core.py        # Lógica central (Proceso, Planificador)
 │  ├─ gui.py         # Interfaz gráfica (MainWindow, diálogos)
@@ -133,7 +133,7 @@ python Codigos/main.py
 
 La aplicación cuenta con una interfaz gráfica intuitiva que permite al usuario configurar y observar la ejecución de procesos bajo distintos algoritmos de planificación (FCFS, SJF, SRTF y Round Robin).
 
-![alt text](/Imagenes/image.png)
+![alt text](/PRF-SO/Imagenes/image.png)
 
 ## Selección del Algoritmo
 En este paso, el usuario elige uno de los algoritmos de planificación disponibles, como se especifica en la documentación. Las opciones incluyen:
@@ -143,16 +143,17 @@ SJF (El trabajo más corto primero)
 SRTF (Tiempo restante más corto primero)
 Round Robin (Partido redondo)
 
-![alt text](/Imagenes/image-1.png)
+![alt text](/PRF-SO/Imagenes/image-1.png)
 
 ## Creación de un Proceso
 En el panel "Añadir Proceso", el usuario ingresa los datos de un nuevo proceso para la simulación. En la imagen, se está creando un proceso con las siguientes características:
 
 Nombre del proceso: "Ejemplo 1"
+Quantum de Tiempo: 1
 Instante de Llegada: "3" (unidades de tiempo)
 Tiempo en CPU: "5" (unidades de tiempo)
 
-![alt text](/Imagenes/image-2.png)
+![alt text](/PRF-SO/Imagenes/image-2.png)
 
 ## Visualización de Procesos a Simular
 Una vez creados, los procesos se listan en el panel "Procesos a Simular". Aquí se pueden ver sus atributos clave:
@@ -163,12 +164,12 @@ Llegada: El instante en que el proceso llega al sistema.
 CPU: El tiempo total de CPU que necesita.
 Esta tabla permite al usuario revisar y gestionar los procesos antes de iniciar la simulación.
 
-![alt text](/Imagenes/image-3.png)
+![alt text](/PRF-SO/Imagenes/image-3.png)
 
 ## Cronograma de Ejecución
-Esta imagen muestra el "Cronograma de Ejecución" o diagrama de Gantt. Después de que se ha iniciado la simulación, este panel muestra cómo la CPU ejecuta cada proceso a lo largo del tiempo, de acuerdo con el algoritmo de planificación seleccionado. Cada fila representa un proceso (como "Ejemplo 1 (P3)"), y las celdas de colores indican el tiempo que la CPU le dedica a cada uno. La "X" podría representar tiempo de espera o inactividad de la CPU. En este caso, el cronograma corresponde al algoritmo FCFS.
+Esta imagen muestra el "Cronograma de Ejecución" o diagrama de Gantt. Después de que se ha iniciado la simulación, este panel muestra cómo la CPU ejecuta cada proceso a lo largo del tiempo, de acuerdo con el algoritmo de planificación seleccionado. Cada fila representa un proceso (como "Ejemplo 1 (P3)"), y las celdas de colores indican el tiempo que la CPU le dedica a cada uno. La "X" podría representar tiempo de espera o inactividad de la CPU. En este caso, el cronograma corresponde al algoritmo Round Robin.
 
-![alt text](/Imagenes/image-4.png)
+![alt text](/PRF-SO/Imagenes/image-4.png)
 
 ## Historial y Métricas Finales
 Una vez que la simulación ha avanzado, el panel "Historial y Métricas Finales" se llena con los resultados de los procesos que han terminado. Esta tabla proporciona datos cruciales para analizar la eficiencia del algoritmo, incluyendo:
@@ -180,4 +181,8 @@ Retorno (T): El tiempo que el proceso pasó en el sistema (desde que llegó hast
 Espera (Te): El tiempo total que el proceso esperó en la cola antes de ser ejecutado.
 Índice (I=t/T): Una métrica de rendimiento que relaciona el tiempo de CPU con el tiempo de retorno.
 
-![alt text](/Imagenes/image-5.png)
+![alt text](/PRF-SO/Imagenes/image-5.png)
+
+## Vista del Programa Ejecutado y Procesos Finalizados
+
+![alt text](/PRF-SO/Imagenes/image-6.png)
